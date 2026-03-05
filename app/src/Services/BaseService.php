@@ -8,6 +8,7 @@ use AdvClientAPI\Core\Config;
 use AdvClientAPI\Contracts\LoggerInterface;
 use AdvClientAPI\Contracts\InsuranceServiceInterface;
 use AdvClientAPI\Utilities\RetryPolicy;
+use AdvClientAPI\Exceptions\InsuranceApiException;
 
 /**
  * Abstract base service with common functionality
@@ -22,6 +23,9 @@ abstract class BaseService implements InsuranceServiceInterface
     {
         $this->config = $config;
         $this->logger = $config->getLogger();
+        
+        // print($this->logger);
+
         $this->retryPolicy = new RetryPolicy(
             $config->getMaxRetries(),
             $config->getBackoffFactor()
@@ -38,16 +42,18 @@ abstract class BaseService implements InsuranceServiceInterface
      * @return array{status_code: int, headers: array, body: string}
      * @throws \AdvClientAPI\Exceptions\InsuranceApiException
      */
-    protected function makeRequest(
-        string $method,
-        string $url,
-        array $headers = [],
-        ?string $body = null
-    ): array {
-        return $this->retryPolicy->execute(function () use ($method, $url, $headers, $body) {
-            return $this->executeRequest($method, $url, $headers, $body);
-        });
-    }
+protected function makeRequest(
+    string $method,
+    string $url,
+    array $headers = [],
+    ?string $body = null
+): array {
+
+    return $this->retryPolicy->execute(
+        fn() => $this->executeRequest($method, $url, $headers, $body)
+    );
+}
+
 
     /**
      * Execute HTTP request via CURL
@@ -72,9 +78,13 @@ abstract class BaseService implements InsuranceServiceInterface
                 CURLOPT_CUSTOMREQUEST => $method,
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT => $this->config->getRequestTimeoutSec(),
-                CURLOPT_HEADER => false,
-                CURLOPT_FOLLOWLOCATION => true,
-                CURLOPT_MAXREDIRS => 5,
+                CURLOPT_HEADER => true,
+                // CURLOPT_FOLLOWLOCATION => true,
+            
+                // CURLOPT_MAXREDIRS => 5,
+                // This bitmask tells cURL to resend POST data on 301, 302, and 303 redirects
+                // CURLOPT_POSTREDIR => 1 | 2 | 4,
+              
             ];
 
             if (!empty($headers)) {
@@ -90,25 +100,33 @@ abstract class BaseService implements InsuranceServiceInterface
             }
 
             curl_setopt_array($ch, $curlOptions);
-
-            $responseBody = curl_exec($ch);
+            
+            $raw_response = curl_exec($ch);
             $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $curlError = curl_error($ch);
-
-            if ($responseBody === false) {
-                throw new \AdvClientAPI\Exceptions\InsuranceApiException(
+           
+            if ($raw_response === false) {
+                throw new InsuranceApiException(
                     "CURL error: {$curlError}"
                 );
             }
+            $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+            $responseHeader = substr($raw_response, 0, $headerSize);
+            $headerLines = array_map('trim', explode("\r\n", $responseHeader));
+            $responseBody = substr($raw_response, $headerSize );
+            // var_dump($responseHeader);
+            // var_dump($headerLines);
 
-          
+
+            return [ 
+            'status_code' => (int)$statusCode,
+            'headers' => $headerLines,
+            'body' => (string)$responseBody,
+        ];
         } finally {
-          
-            return [
-                'status_code' => (int)$statusCode,
-                'headers' => [],
-                'body' => (string)$responseBody,
-            ];
+          unset($ch);
         }
+        
+        
     }
 }

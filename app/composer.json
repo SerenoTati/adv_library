@@ -1,6 +1,5 @@
 {
   "name": "simtech/adv-library",
-  "version": "1.0.0",
   "description": "PHP library for ADV insurance API processing with SOAP and REST endpoints",
   "type": "library",
   "license": "MIT",
@@ -14,7 +13,8 @@
     "php": ">=8.2",
     "ext-curl": "*",
     "ext-json": "*",
-    "ext-xml": "*"
+    "ext-xml": "*",
+    "guzzlehttp/guzzle": "^7.10"
   },
   "require-dev": {
     "phpunit/phpunit": "^9.5",

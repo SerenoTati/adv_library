@@ -6,13 +6,13 @@ namespace AdvClientAPI\Tests;
 
 use PHPUnit\Framework\TestCase;
 use AdvClientAPI\Core\AdvClient;
-use AdvClientAPI\Core\Config;
 use AdvClientAPI\Utilities\DateFormatter;
 use AdvClientAPI\Utilities\XmlParser;
 use AdvClientAPI\Utilities\RetryPolicy;
 use AdvClientAPI\Auth\InMemoryTokenCache;
 use AdvClientAPI\Mappers\PharmaActResponseMapper;
 use AdvClientAPI\Mappers\OracleResponseMapper;
+use function PHPUnit\Framework\assertEquals;
 
 /**
  * Core Library Tests
@@ -359,7 +359,6 @@ XML;
 
         $mapper = new OracleResponseMapper($jsonResponse);
         $result = $mapper->map();
-        var_dump($result);
 
         $this->assertTrue($result['success']);
         $this->assertEquals('SUCCESS', $result['status']);
@@ -433,10 +432,14 @@ XML;
 
         $mapper = new PharmaActResponseMapper($errorXml);
     
-        // Expect ResponseParsingException for SOAP-level errors (returnCode != 0)
-        $this->expectException(\AdvClientAPI\Exceptions\ResponseParsingException::class);
-        $this->expectExceptionMessageMatches('/SOAP Error/');
+      $result =           $mapper->map();
+    
+      $this->assertFalse($result['success']);
+              assertEquals(1, $result['returnCode']);
+              assertEquals(0, $result['totalResults']);
+              
+      
         
-        $mapper->map();
+        // $mapper->map();
     }
 }

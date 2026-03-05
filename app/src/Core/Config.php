@@ -14,7 +14,7 @@ use AdvClientAPI\Utilities\NoopLogger;
  * Configuration management for the insurance API client
  * Loads configuration from environment variables, array, or defaults
  */
-class Config
+ class Config
 {
     // ADVANCECARE SOAP ENDPOINTS
     private string $advanceCareQualUrl;
@@ -25,6 +25,11 @@ class Config
     private string $oracleBaseUrl;
     private string $oracleTestUrl;
     private string $oracleProdUrl;
+    private String $oracleScope;
+    private String $testScope;
+    private String $prodScope;
+    private String $tokenUrl;
+
 
     // HTTP RETRY CONFIGURATION
     private int $maxRetries;
@@ -46,17 +51,24 @@ class Config
         // ADVANCECARE SOAP defaults
         $this->advanceCareQualUrl = 'https://wsdev.advancecare.com/zonaReservadaWSAO/EligibilityWSAO/wsdl/EligibilityWSAO.wsdl';
         $this->advanceCareProdUrl = 'https://profissional.adv-angola.com/zonaReservadaWSAO/EligibilityWSAO/wsdl/EligibilityWSAO.wsdl';
-        $this->advanceCareEnv = 'QUAL';
+        $this->advanceCareEnv = 'PROD';
+
 
         // ORACLE REST defaults
         $this->oracleTestUrl = 'https://fmxovjwlbbhe4wdambldgmyxju.apigateway.eu-frankfurt-1.oci.customer-oci.com/oig-test/exchanges/integration/';
         $this->oracleProdUrl = 'https://fmxovjwlbbhe4wdambldgmyxju.apigateway.eu-frankfurt-1.oci.customer-oci.com/oig-prod/exchanges/integration/';
-        $this->oracleBaseUrl = $this->oracleTestUrl;
+        $this->oracleBaseUrl = $this->oracleProdUrl;
+        $this->testScope ='https://adva-test-ohi.oracleindustry.com/test/urn::ohi-components-apis';
+        $this->prodScope = 'https://adva-prod-ohi.oracleindustry.com/prod/urn::ohi-components-apis';
+        $this->oracleScope = $this->prodScope;
+        $this->tokenUrl = 'https://idcs-7d4260755fda42d1bd9606e8fc6ebd07.identity.oraclecloud.com/oauth2/v1/token';
+
+
 
         // HTTP/Retry defaults
         $this->maxRetries = 3;
         $this->backoffFactor = 2.0;
-        $this->requestTimeoutSec = 30;
+        $this->requestTimeoutSec = 60;
 
         // Token cache defaults
         $this->tokenCacheTtlSec = 3600;
@@ -64,6 +76,16 @@ class Config
         
         // Logging
         $this->logger = new NoopLogger();
+    }
+    public static function testInstance(): self
+    {
+        $config = new self();
+        $config->oracleBaseUrl = $config->oracleTestUrl;
+        $config->advanceCareEnv = 'QUAL';
+   
+  
+        $config->oracleScope = $config->testScope;
+        return $config;
     }
 
     // /**
@@ -251,6 +273,10 @@ class Config
             ? $this->advanceCareProdUrl
             : $this->advanceCareQualUrl;
     }
+    public function getOracleTokenUrl(): string
+    {
+        return $this->tokenUrl;
+    }
 
     // /**
     //  * Get current AdvanceCare environment
@@ -270,6 +296,10 @@ class Config
     public function getOracleBaseUrl(): string
     {
         return $this->oracleBaseUrl;
+    }
+    public function getOracleScope(): string
+    {
+        return $this->oracleScope;
     }
 
     /**

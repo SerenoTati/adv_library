@@ -4,11 +4,13 @@ declare(strict_types=1);
 
 namespace AdvClientAPI\Services;
 
+use Exception;
+
 use AdvClientAPI\Core\Config;
 use AdvClientAPI\Auth\TokenManager;
 use AdvClientAPI\Exceptions\OracleException;
 use AdvClientAPI\Mappers\OracleResponseMapper;
-// use AdvClientAPI\Utilities\DateFormatter;
+use GuzzleHttp\Client;
 
 /**
  * Oracle REST API service implementation
@@ -19,16 +21,17 @@ class AdvanceCareOracleService extends BaseService
     private TokenManager $tokenManager;
 
     // Oracle endpoints
-    private const ENDPOINT_SUBMIT = '{baseUrl}/provider/{providerId}/submitReservation';
-    private const ENDPOINT_CANCEL = '{baseUrl}/provider/{providerId}/cancelReservation';
-
+    // private $config;
     public function __construct(Config $config)
+
     {
+
         parent::__construct($config);
         $this->tokenManager = new TokenManager(
             $config->getTokenCache(),
             $config->getLogger()
         );
+        $this->config = $config;
     }
 
     /**
@@ -40,6 +43,7 @@ class AdvanceCareOracleService extends BaseService
      */
     public function performPharmaAct(array $data): array
     {
+
         return $this->executeDataRequest($data, 'submitReservation');
     }
 
@@ -89,72 +93,119 @@ class AdvanceCareOracleService extends BaseService
      */
     private function executeDataRequest(array $data, string $operation): array
     {
-        $this->validateRequestData($data);
-
         // Extract auth credentials
         $auth = $data['auth'] ?? [];
-        $requestData = $data['requestData'] ?? $data;
+        if (empty($auth)) {
+            throw (new OracleException(
+                message: 'No Authentication details provided',
+                responseBody: $auth
+
+            ));
+        }
+
+        $requestData = $data['requestData'];
+
+        if (empty($requestData)) {
+            throw new OracleException(message: 'No request data provided');
+        }
 
         // Get OAuth2 token with automatic caching
-        $token = $this->getToken($auth);
+        try {
+            $token = $this->getToken($auth);
+        } catch (OracleException $e) {
+            throw $e;
+        } catch (Exception $e) {
+            throw new OracleException("Failed to get OAuth2 token: " . $e->getMessage());
+        }
 
         // Build endpoint URL
-        $providerId = $auth['providerId'] ?? 'default';
-        $endpointTemplate = $operation === 'cancelReservation'
-            ? self::ENDPOINT_CANCEL
-            : self::ENDPOINT_SUBMIT;
+        $providerId = $auth['providerId'];
 
-        $endpoint = str_replace(
-            ['{baseUrl}', '{providerId}'],
-            [$this->config->getOracleBaseUrl(), $providerId],
-            $endpointTemplate
-        );
+        $endpoint = $this->config->getOracleBaseUrl() . $providerId . '/' . $operation;
 
-        // Prepare request
+        // Prepare request - add Bearer prefix like Python script does
         $headers = [
-            'Authorization' => "Bearer {$token}",
+            'Authorization' => 'Bearer ' . $token,  // Add "Bearer " prefix (like Python)
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
+            'Provider' => $providerId,
+            "ohi-exchange-allowed-time-ms" => "60000"
         ];
+         
 
         $body = json_encode($requestData);
 
-        $this->logger->debug('Sending Oracle REST request', [
-            'operation' => $operation,
-            'endpoint' => $endpoint,
-        ]);
 
         try {
-            $response = $this->makeRequest('POST', $endpoint, $headers, $body);
+         
+            // Enable cookie jar for handling authentication
+            $cookieJar = new \GuzzleHttp\Cookie\CookieJar();
+            
+            // Disable automatic redirects - we'll handle them manually like the Python script
+            $client = new Client([
+                'timeout' => $this->config->getRequestTimeoutSec(),
+                'allow_redirects' => false,
+                'cookies' => $cookieJar
+            ]);
+            $response = $client->request('POST', $endpoint, ['headers' => $headers, 'body' => $body]);
+            
+            // Handle 302/303 redirects - follow with GET and keep Authorization header
+            if ($response->getStatusCode() === 302 || $response->getStatusCode() === 303) {
+                $responseHeaders = $response->getHeaders();
+                
+                if (!isset($responseHeaders['Location'])) {
+                    throw new OracleException(
+                        'Redirect received but no Location header found',
+                        $response->getStatusCode(),
+                        $endpoint,
+                        ''
+                    );
+                }
+                
+                $redirectUrl = $responseHeaders['Location'][0];
+                
+                // Follow redirect with GET and KEEP the Authorization header 
+                $redirectResponse = $client->request('GET', $redirectUrl, ['headers' => $headers]);
+               
+                if ($redirectResponse->getStatusCode() !== 200) {
+                    throw new OracleException(
+                        'Redirect request failed with status code ' . $redirectResponse->getStatusCode(),
+                        $redirectResponse->getStatusCode(),
+                        $redirectUrl,
+                        (string)$redirectResponse->getBody()
+                    );
+                }
 
-            // Handle 303 redirect
-            if ($response['status_code'] === 303) {
-                // Response should have a Location header
-                $this->logger->debug('Oracle returned 303 redirect');
-                // In real implementation, would follow redirect
+                $responseBody = (string)$redirectResponse->getBody();
+                $mapper = new OracleResponseMapper($responseBody);
+                return $mapper->map();
             }
 
-            if ($response['status_code'] < 200 || $response['status_code'] >= 300) {
+            // Handle non-redirect responses
+            if ($response->getStatusCode() !== 200) {
                 throw new OracleException(
-                    "Oracle API request failed with HTTP {$response['status_code']}",
-                    $response['status_code'],
+                    "Oracle API request failed with status code: " . $response->getStatusCode(),
+                    $response->getStatusCode(),
                     $endpoint,
-                    $response['body']
+                    (string)$response->getBody()
                 );
             }
 
-            // Parse response
-            $mapper = new OracleResponseMapper($response['body']);
+            // Parse successful response
+            $responseBody = (string)$response->getBody();
+            $mapper = new OracleResponseMapper($responseBody);
             return $mapper->map();
+            
         } catch (OracleException $e) {
-            $this->logger->error('Oracle REST request failed', [
+            $this->logger->error('Oracle REST request failed ' . $e->getMessage(), [
                 'operation' => $operation,
                 'error' => $e->getMessage(),
             ]);
             throw $e;
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
+         
             throw new OracleException(
-                "Oracle REST request error: {$e->getMessage()}",
+                "Oracle REST request error: " . $e->getMessage(),
                 0,
                 $endpoint,
                 ''
@@ -169,48 +220,54 @@ class AdvanceCareOracleService extends BaseService
      * @return string Access token
      * @throws OracleException
      */
-    private function getToken(array $auth): string
+    private  function  getToken(array $auth): string
     {
-        $required = ['clientId', 'clientSecret', 'scope'];
+        $required = ['clientId', 'clientSecret'];
         foreach ($required as $field) {
+
             if (!isset($auth[$field])) {
+
                 throw new OracleException(
                     "Missing required auth field: {$field}"
                 );
             }
         }
 
-        // Default token URL if not provided
-        $tokenUrl = $auth['tokenUrl'] ?? $this->config->getOracleBaseUrl() . '/oauth2/token';
-
         try {
-            return $this->tokenManager->getToken(
-                $tokenUrl,
+            // Use scope from auth array if provided, otherwise use config default
+            $scope = $auth['scope'] ?? $this->config->getOracleScope();
+
+            $result = $this->tokenManager->getToken(
                 $auth['clientId'],
+
                 $auth['clientSecret'],
-                $auth['scope']
+                $this->config->getOracleTokenUrl(),
+
+                $scope
             );
-        } catch (\Exception $e) {
+
+            return $result;
+        } catch (Exception $e) {
             throw new OracleException(
-                "Failed to obtain token: {$e->getMessage()}"
+                "Failed to obtain token: " . $e->getMessage()
             );
         }
     }
 
-    /**
-     * Validate request data
-     *
-     * @param array<string, mixed> $data
-     * @throws \InvalidArgumentException
-     */
-    private function validateRequestData(array $data): void
-    {
-        if (!isset($data['auth']) || !is_array($data['auth'])) {
-            throw new \InvalidArgumentException('Missing "auth" configuration in request data');
-        }
+    // /**
+    //  * Validate request data
+    //  *
+    //  * @param array<string, mixed> $data
+    //  * @throws \InvalidArgumentException
+    //  */
+    // private function validateRequestData(array $data): void
+    // {
+    //     if (!isset($data['auth']) || !is_array($data['auth'])) {
+    //         throw new \InvalidArgumentException('Missing "auth" configuration in request data');
+    //     }
 
-        if (!isset($data['requestData']) && !isset($data['customer_code'])) {
-            throw new \InvalidArgumentException('Missing request data fields');
-        }
-    }
+    //     if (!isset($data['requestData']) && !isset($data['customer_code'])) {
+    //         throw new \InvalidArgumentException('Missing request data fields');
+    //     }
+    // }
 }

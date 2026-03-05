@@ -30,17 +30,18 @@ class PharmaActResponseMapper extends BaseResponseMapper
             // Check for SOAP-level errors
             if ($returnCode && $returnCode !== '0') {
                 $errorDetail = !empty($messages) ? $messages[0] : 'Unknown error';
-                $errorJson = json_encode([
+           return['success'=>false,
                     'error' => 'SOAP Error',
                     'detail' => $errorDetail,
                     'returnCode' => $returnCode,
                     'messages' => $messages,
-                ], JSON_UNESCAPED_UNICODE);
-                throw new ResponseParsingException(
-                    "SOAP Error: {$errorJson}",
-                    '',
-                    'SOAP'
-                );
+                    'totalResults'=>$totalResults
+                ];
+                // throw new ResponseParsingException(
+                //     "SOAP Error: {$errorJson}",
+                //     '',
+                //     'SOAP'
+                // );
             }
 
             // Find main results element

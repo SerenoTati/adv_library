@@ -6,9 +6,10 @@ namespace AdvClientAPI\Core;
 
 use AdvClientAPI\Services\AdvanceCareService;
 use AdvClientAPI\Services\AdvanceCareOracleService;
+use Exception;
 
 /**
- * Main entry point for the Insurance API PHP library
+ * Main entry point for the ADV Insurance API PHP library
  *
  * Provides a minimal, clean interface requiring only JSON input data
  * Handles all complexity internally including:
@@ -18,28 +19,6 @@ use AdvClientAPI\Services\AdvanceCareOracleService;
  * - Response parsing and mapping
  * - Retry logic with exponential backoff
  * - Configuration management
- *
- * @example
- * ```php
- * $client = InsuranceApiClient::create([
- *     'advancecare_env' => 'QUAL',
- * ]);
- *
- * $result = $client->performPharmaAct([
- *     'username' => 'user@domain',
- *     'password' => 'secret',
- *     'customer_code' => 'CUST123',
- *     'dos' => '2024-02-20',
- *     'nif' => '12345678-L',
- *     'practitioner_code' => 'PRACT001',
- *     'pharmacy_code' => 'PHARM001',
- *     'beneficiary_code' => 'BEN001',
- * ]);
- *
- * if ($result['success']) {
- *     echo "Eligibility ID: " . $result['eligibility_id'];
- * }
- * ```
  */
 class AdvClient
 {
@@ -49,47 +28,28 @@ class AdvClient
 
     /**
      * Constructor
-     *
-     * @param Config $config Configuration instance
+     * 
+     * This main Constructor Defaults the configuration to Production configurations
+     * 
+     * Use AdvClient::testInstance() for testing configurations
      */
     public function __construct()
-    {   
+    {
         // $this->config = new Config();
         $this->advanceCareService = new AdvanceCareService(new Config());
         $this->oracleService = new AdvanceCareOracleService(new Config());
     }
+    public static function testInstance(): self
+    {
+        $config = Config::testInstance();
+    
+        $client = new self();
+        // Replace the default Config instances with test Config
+        $client->advanceCareService = new AdvanceCareService($config);
+        $client->oracleService = new AdvanceCareOracleService($config);
 
-    /**
-     * Create client with configuration
-     *
-     * Static factory method for convenient initialization
-     * Configuration sources (priority order):
-     * 1. Explicitly passed parameters in $config array
-     * 2. Environment variables
-     * 3. Default values
-     *
-     * @param array<string, mixed> $config Configuration array
-     * @return self
-     *
-     * @example
-     * ```php
-     * $client = InsuranceApiClient::create([
-     *     'advancecare_env' => 'PROD',
-     *     'http_max_retries' => 5,
-     * ]);
-     * ```
-     */
-    // public static function create(array $config = []): self
-    // {
-    //     // $configInstance = empty($config)
-    //     //     ? New Config()
-    //         if (empty($config)) {
-    //             # code...
-    //             $configInstance = new Config();
-    //         } 
-    //     return new self($configInstance);
-    // }
-
+        return $client;
+    }
     // ==================== ADVANCECARE SOAP OPERATIONS ====================
 
     /**
@@ -97,23 +57,50 @@ class AdvClient
      *
      * Validates pharmaceutical action eligibility and returns eligibility ID
      *
-     * Required fields:
-     * - username: Authentication username
-     * - password: Authentication password
-     * - customer_code: Customer code
-     * - dos: Date of service (YYYY-MM-DD)
-     * - nif: Patient NIF
-     * - practitioner_code: Practitioner code
-     * - pharmacy_code: Pharmacy code
-     * - beneficiary_code: Beneficiary code
-     *
      * @param array<string, mixed> $jsonData
      * @return array<string, mixed>
      * @throws \AdvClientAPI\Exceptions\InsuranceApiException
+     *
+     * @example
+     * ```php
+     * $client = new AdvClient();
+     * $response = $client->performPharmaAct([
+     *     "buID" => "ESA",
+     *     "currencyCode" => "AOA",
+     *     "dos" => "2025-12-06T10:00:00Z",
+     *     "pharmaServiceValuesList" => [
+     *         [
+     *             "amtClaimed" => "123.45",
+     *             "procCode" => "PROC1",
+     *             "iva" => "12.35",
+     *             "unit" => 1
+     *         ],
+     *         [
+     *             "amtClaimed" => "67.89",
+     *             "procCode" => "PROC2",
+     *             "iva" => "6.79",
+     *             "unit" => 2
+     *         ]
+     *     ],
+     *     "memID" => "MEMBER123",
+     *     "practiceSeq" => 12345,
+     *     "providerID" => "PROVIDER123",
+     *     "username" => "testuser",
+     *     "password" => "testpassword",
+     *     "created" => "2025-12-06T10:00:00Z"
+     * ]);
+     * ```
      */
     public function performPharmaAct(array $jsonData): array
+
     {
-        return $this->advanceCareService->performPharmaAct($jsonData);
+       
+
+        $result = $this->advanceCareService->performPharmaAct($jsonData);;
+        
+    
+
+        return $result;
     }
 
     /**
@@ -124,15 +111,23 @@ class AdvClient
      * Required fields:
      * - username: Authentication username
      * - password: Authentication password
-     * - customer_code: Customer code
-     * - dos: Date of service (YYYY-MM-DD)
-     * - invoice_number: Invoice number
-     * - invoice_date: Invoice date (YYYY-MM-DD)
-     * - invoice_amount: Invoice amount
      *
      * @param array<string, mixed> $jsonData
      * @return array<string, mixed>
      * @throws \AdvClientAPI\Exceptions\InsuranceApiException
+     *
+     * @example
+     * ```php
+     * $client = new AdvClient();
+     * $response = $client->addInvoice([
+     *     "eligibilityNbr" => 123456789,
+     *     "memClinicId" => "INVOICE-123",
+     *     "userId" => "testuser",
+     *     "username" => "testuser",
+     *     "password" => "testpassword",
+     *     "created" => "2025-12-06T10:00:00Z"
+     * ]);
+     * ```
      */
     public function addInvoice(array $jsonData): array
     {
@@ -147,20 +142,29 @@ class AdvClient
      * Required fields:
      * - username: Authentication username
      * - password: Authentication password
-     * - customer_code: Customer code
-     * - dos: Date of service (YYYY-MM-DD)
-     * - nif: Patient NIF
-     * - practitioner_code: Practitioner code
-     * - act_code: Act code
-     * - beneficiary_code: Beneficiary code
      *
      * @param array<string, mixed> $jsonData
      * @return array<string, mixed>
      * @throws \AdvClientAPI\Exceptions\InsuranceApiException
+     *
+     * @example
+     * ```php
+     * $client = new AdvClient();
+     * $response = $client->createEligibility([
+     *     "buID" => "ESA",
+     *     "dos" => "2025-12-06T10:00:00Z",
+     *     "memID" => "MEMBER123",
+     *     "providerID" => "PROVIDER123",
+     *     "username" => "testuser",
+     *     "password" => "testpassword",
+     *     "created" => "2025-12-06T10:00:00Z"
+     * ]);
+     * ```
      */
     public function createEligibility(array $jsonData): array
     {
-        return $this->advanceCareService->createEligibility($jsonData);
+        throw new Exception("Feature not Implemeneted");
+        // return $this->advanceCareService->createEligibility($jsonData);
     }
 
     /**
@@ -171,13 +175,23 @@ class AdvClient
      * Required fields:
      * - username: Authentication username
      * - password: Authentication password
-     * - customer_code: Customer code
      * - dos: Date of service (YYYY-MM-DD)
      * - eligibility_id: ID of eligibility to cancel
      *
      * @param array<string, mixed> $jsonData
      * @return array<string, mixed>
      * @throws \AdvClientAPI\Exceptions\InsuranceApiException
+     *
+     * @example
+     * ```php
+     * $client = new AdvClient();
+     * $response = $client->cancelEligibility([
+     *     "eligibilityNbr" => 123456789,
+     *     "username" => "testuser",
+     *     "password" => "testpassword",
+     *     "created" => "2025-12-06T10:00:00Z"
+     * ]);
+     * ```
      */
     public function cancelEligibility(array $jsonData): array
     {
@@ -195,20 +209,60 @@ class AdvClient
      * Required fields:
      * - auth.clientId: OAuth2 client ID
      * - auth.clientSecret: OAuth2 client secret
-     * - auth.scope: OAuth2 scope
      * - auth.providerId: Provider ID for endpoint
-     * - auth.tokenUrl: (optional) Token endpoint URL
      * - requestData: Request payload
      *
      * @param array<string, mixed> $jsonData
      * @return array<string, mixed>
      * @throws \AdvClientAPI\Exceptions\InsuranceApiException
+     *
+     * @example
+     * ```php
+     * $client = new AdvClient();
+     * $response = $client->oraclePerformPharmaAct([
+     *     "payerCode" => "VIV",
+     *     "insuranceType" => "S",
+     *     "userName" => "Provideruserone",
+     *     "memberCode" => "99999993000202",
+     *     "localCode" => "AO5000078271-2",
+     *     "locationType" => "FARMA",
+     *     "memberPhoneNo" => "925334548",
+     *     "emergency" => false,
+     *     "claimDiagnosisList" => [
+     *         [
+     *             "sequence" => 1,
+     *             "diagnosisType" => "P",
+     *             "diagnosisDate" => "2026-02-13",
+     *             "symptomsDate" => "2026-02-13",
+     *             "diagnosisCode" => "B50",
+     *             "classification" => "CID10"
+     *         ]
+     *     ],
+     *     "claimLineList" => [
+     *         [
+     *             "sequence" => "1",
+     *             "medicalActCode" => "P-0010325",
+     *             "startDate" => "2026-02-13",
+     *             "endDate" => "2026-02-13",
+     *             "requestedUnits" => 1,
+     *             "requestedAmount" => [
+     *                 "value" => "12500",
+     *                 "currency" => "AOA"
+     *             ]
+     *         ]
+     *     ]
+     * ]);
+     * ```
      */
     public function oraclePerformPharmaAct(array $jsonData): array
     {
-        return $this->oracleService->performPharmaAct($jsonData);
+            //    $result =
+     return $this->oracleService->performPharmaAct($jsonData);
+        
+    // print('Printing the result: ');
+    // var_dump($result);
+        // return $result;  }
     }
-
     /**
      * Add invoice operation (Oracle REST)
      *
@@ -218,6 +272,17 @@ class AdvClient
      * @param array<string, mixed> $jsonData
      * @return array<string, mixed>
      * @throws \AdvClientAPI\Exceptions\InsuranceApiException
+     *
+     * @example
+     * ```php
+     * $client = new AdvClient();
+     * $response = $client->oracleAddInvoice([
+     *     "payerCode" => "VIV",
+     *     "claimCode" => "47122295764",
+     *     "invoiceNumber" => "INV-2026-001",
+     *     "userName" => "Provideruserone"
+     * ]);
+     * ```
      */
     public function oracleAddInvoice(array $jsonData): array
     {
@@ -233,6 +298,16 @@ class AdvClient
      * @param array<string, mixed> $jsonData
      * @return array<string, mixed>
      * @throws \AdvClientAPI\Exceptions\InsuranceApiException
+     *
+     * @example
+     * ```php
+     * $client = new AdvClient();
+     * $response = $client->oracleCreateEligibility([
+     *     "payerCode" => "VIV",
+     *     "memberCode" => "99999993000202",
+     *     "userName" => "Provideruserone"
+     * ]);
+     * ```
      */
     public function oracleCreateEligibility(array $jsonData): array
     {
@@ -248,33 +323,24 @@ class AdvClient
      * @param array<string, mixed> $jsonData
      * @return array<string, mixed>
      * @throws \AdvClientAPI\Exceptions\InsuranceApiException
+     *
+     * @example
+     * ```php
+     * $client = new AdvClient();
+     * $response = $client->oracleCancelEligibility([
+     *     "payerCode" => "VIV",
+     *     "memberCode" => "PT1410202501-02",
+     *     "localCode" => "AO5000078271-1",
+     *     "claimCode" => "47122295764",
+     *     "cancellationReasonCode" => "CAN_DUP",
+     *     "userName" => "Provideruserone"
+     * ]);
+     * ```
      */
     public function oracleCancelEligibility(array $jsonData): array
     {
         return $this->oracleService->cancelEligibility($jsonData);
     }
-
-    // ==================== CONFIGURATION MANAGEMENT ====================
-
-    /**
-     * Get current configuration
-     *
-     * @return Config
-     */
-    // public function getConfig(): Config
-    // {
-    //     return $this->config;
-    // }
-
-    /**
-     * Get configuration as array (for debugging/logging)
-     *
-     * @return array<string, mixed>
-     */
-    // public function getConfigArray(): array
-    // {
-    //     return $this->config->toArray();
-    // }
 }
 // Alias for backward compatibility
 class_alias(AdvClient::class, 'AdvClientAPI\\Core\\InsuranceApiClient');

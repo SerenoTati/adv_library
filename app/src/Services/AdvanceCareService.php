@@ -28,12 +28,16 @@ class AdvanceCareService extends BaseService
     private const SOAP_ACTION_ADD_INVOICE = 'addInvoiceNumberRequest';
     private const SOAP_ACTION_CANCEL = 'nullifyEligibilityOrSingleActRequest';
 
-    private const SOAP_NAMESPACE = 'http://pt.advancecare.awsp.eligibilityAO';
-    private const SOAP_VERSION = '1.2';
+    // private const SOAP_NAMESPACE = 'http://pt.advancecare.awsp.eligibilityAO';
+    // private const SOAP_VERSION = '1.2';
 
     public function __construct(Config $config)
     {
-        parent::__construct($config);
+        
+    parent::__construct($config);
+
+
+
 
         // Initialize template renderer with templates directory
         $templatesPath = dirname(__DIR__) . '/Templates';
@@ -49,13 +53,13 @@ class AdvanceCareService extends BaseService
      */
     public function performPharmaAct(array $data): array
     {
-        $this->validatePharmaActData($data);
+        // $this->validatePharmaActData($data);
 
         // Extract security fields and data
         $renderData = $this->prepareRenderData($data);
 
         $soapBody = $this->renderer->render('advancecare/pharma_act.xml.j2', $renderData);
-
+        // var_dump($soapBody);
         $response = $this->sendSoap(
             $soapBody,
             self::SOAP_ACTION_PHARMA
@@ -74,7 +78,7 @@ class AdvanceCareService extends BaseService
      */
     public function createEligibility(array $data): array
     {
-        $this->validateEligibilityData($data);
+        // $this->validateEligibilityData($data);
 
         // Extract security fields and data
         $renderData = $this->prepareRenderData($data);
@@ -99,7 +103,7 @@ class AdvanceCareService extends BaseService
      */
     public function addInvoice(array $data): array
     {
-        $this->validateInvoiceData($data);
+        // $this->validateInvoiceData($data);
 
         // Extract security fields and data
         $renderData = $this->prepareRenderData($data);
@@ -124,7 +128,7 @@ class AdvanceCareService extends BaseService
      */
     public function cancelEligibility(array $data): array
     {
-        $this->validateCancelData($data);
+        // $this->validateCancelData($data);
 
         // Extract security fields and data
         $renderData = $this->prepareRenderData($data);
@@ -179,7 +183,7 @@ class AdvanceCareService extends BaseService
         $url = $this->config->getAdvanceCareUrl();
 
         $headers = [
-            'Content-Type' => 'application/soap+xml; charset=UTF-8',
+            'Content-Type' => 'text/xml; charset=utf-8',
             'SOAPAction' => $action,
         ];
 
@@ -192,6 +196,10 @@ class AdvanceCareService extends BaseService
             $response = $this->makeRequest('POST', $url, $headers, $soapBody);
 
             if ($response['status_code'] < 200 || $response['status_code'] >= 300) {
+                // $this->logger->info($response['body']);
+
+                // print('responseBody: ');
+                // var_dump($response['body']);
                 throw new SoapException(
                     "SOAP request failed with HTTP {$response['status_code']}",
                     $response['status_code'],
@@ -203,6 +211,7 @@ class AdvanceCareService extends BaseService
 
             // Check for SOAP faults in response
             if (stripos($response['body'], 'soap:Fault') !== false) {
+
                 throw new SoapException(
                     "SOAP Fault in response",
                     0,
@@ -214,6 +223,7 @@ class AdvanceCareService extends BaseService
 
             return $response['body'];
         } catch (SoapException $e) {
+
             $this->logger->error('SOAP request failed', [
                 'action' => $action,
                 'error' => $e->getMessage(),
@@ -230,91 +240,91 @@ class AdvanceCareService extends BaseService
         }
     }
 
-    /**
-     * Validate pharma act data
-     *
-     * @param array<string, mixed> $data
-     * @throws \InvalidArgumentException
-     */
-    private function validatePharmaActData(array $data): void
-    {
-        $required = ['username', 'password', 'customer_code', 'dos', 'nif', 'practitioner_code', 'pharmacy_code', 'beneficiary_code'];
-        $this->validateRequiredFields($data, $required);
+    // /**
+    //  * Validate pharma act data
+    //  *
+    //  * @param array<string, mixed> $data
+    //  * @throws \InvalidArgumentException
+    //  */
+    // private function validatePharmaActData(array $data): void
+    // {
+    //     $required = ['username', 'password', 'customer_code', 'dos', 'nif', 'practitioner_code', 'pharmacy_code', 'beneficiary_code'];
+    //     $this->validateRequiredFields($data, $required);
 
-        // Format DOS
-        if (!empty($data['dos'])) {
-            $data['dos'] = DateFormatter::formatDosDate($data['dos']);
-        }
-    }
+    //     // Format DOS
+    //     if (!empty($data['dos'])) {
+    //         $data['dos'] = DateFormatter::formatDosDate($data['dos']);
+    //     }
+    // }
 
-    /**
-     * Validate eligibility data
-     *
-     * @param array<string, mixed> $data
-     * @throws \InvalidArgumentException
-     */
-    private function validateEligibilityData(array $data): void
-    {
-        $required = ['username', 'password', 'customer_code', 'dos', 'nif', 'practitioner_code', 'act_code', 'beneficiary_code'];
-        $this->validateRequiredFields($data, $required);
+    // /**
+    //  * Validate eligibility data
+    //  *
+    //  * @param array<string, mixed> $data
+    //  * @throws \InvalidArgumentException
+    //  */
+    // private function validateEligibilityData(array $data): void
+    // {
+    //     $required = ['username', 'password', 'customer_code', 'dos', 'nif', 'practitioner_code', 'act_code', 'beneficiary_code'];
+    //     $this->validateRequiredFields($data, $required);
 
-        if (!empty($data['dos'])) {
-            $data['dos'] = DateFormatter::formatDosDate($data['dos']);
-        }
-    }
+    //     if (!empty($data['dos'])) {
+    //         $data['dos'] = DateFormatter::formatDosDate($data['dos']);
+    //     }
+    // }
 
-    /**
-     * Validate invoice data
-     *
-     * @param array<string, mixed> $data
-     * @throws \InvalidArgumentException
-     */
-    private function validateInvoiceData(array $data): void
-    {
-        $required = ['username', 'password', 'customer_code', 'dos', 'invoice_number', 'invoice_date', 'invoice_amount'];
-        $this->validateRequiredFields($data, $required);
+    // /**
+    //  * Validate invoice data
+    //  *
+    //  * @param array<string, mixed> $data
+    //  * @throws \InvalidArgumentException
+    //  */
+    // private function validateInvoiceData(array $data): void
+    // {
+    //     $required = ['username', 'password', 'customer_code', 'dos', 'invoice_number', 'invoice_date', 'invoice_amount'];
+    //     $this->validateRequiredFields($data, $required);
 
-        if (!empty($data['dos'])) {
-            $data['dos'] = DateFormatter::formatDosDate($data['dos']);
-        }
-    }
+    //     if (!empty($data['dos'])) {
+    //         $data['dos'] = DateFormatter::formatDosDate($data['dos']);
+    //     }
+    // }
 
-    /**
-     * Validate cancel data
-     *
-     * @param array<string, mixed> $data
-     * @throws \InvalidArgumentException
-     */
-    private function validateCancelData(array $data): void
-    {
-        $required = ['username', 'password', 'customer_code', 'dos', 'eligibility_id'];
-        $this->validateRequiredFields($data, $required);
+    // /**
+    //  * Validate cancel data
+    //  *
+    //  * @param array<string, mixed> $data
+    //  * @throws \InvalidArgumentException
+    //  */
+    // private function validateCancelData(array $data): void
+    // {
+    //     $required = ['username', 'password', 'customer_code', 'dos', 'eligibility_id'];
+    //     $this->validateRequiredFields($data, $required);
 
-        if (!empty($data['dos'])) {
-            $data['dos'] = DateFormatter::formatDosDate($data['dos']);
-        }
-    }
+    //     if (!empty($data['dos'])) {
+    //         $data['dos'] = DateFormatter::formatDosDate($data['dos']);
+    //     }
+    // }
 
-    /**
-     * Validate that required fields exist in data
-     *
-     * @param array<string, mixed> $data
-     * @param array<string> $required
-     * @throws \InvalidArgumentException
-     */
-    private function validateRequiredFields(array $data, array $required): void
-    {
-        $missing = [];
-        foreach ($required as $field) {
-            if (!isset($data[$field]) || empty($data[$field])) {
-                $missing[] = $field;
-            }
-        }
+    // /**
+    //  * Validate that required fields exist in data
+    //  *
+    //  * @param array<string, mixed> $data
+    //  * @param array<string> $required
+    //  * @throws \InvalidArgumentException
+    //  */
+    // private function validateRequiredFields(array $data, array $required): void
+    // {
+    //     $missing = [];
+    //     foreach ($required as $field) {
+    //         if (!isset($data[$field]) || empty($data[$field])) {
+    //             $missing[] = $field;
+    //         }
+    //     }
 
-        if (!empty($missing)) {
-            throw new \InvalidArgumentException(
-                'Missing required fields: ' . implode(', ', $missing)
-            );
-        }
-    }
+    //     if (!empty($missing)) {
+    //         throw new \InvalidArgumentException(
+    //             'Missing required fields: ' . implode(', ', $missing)
+    //         );
+    //     }
+    // }
 }
