@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace AdvClientAPI\Tests;
 
+use Exception;
 use PHPUnit\Framework\TestCase;
 use AdvClientAPI\Core\AdvClient;
 use AdvClientAPI\Exceptions\OracleException;
@@ -112,100 +113,101 @@ class AdvClientTest extends TestCase
     //         // print($e->getMessage());
     //         print('Error ecp');
     //     }
-    // }
-    public function testOraclePharmaAct(): void
-    {
-        $providerId = '45C2ADA676EE3698E0639F18000A69B5';
-        $clientId = '00258a15399a4936a5743bfdeaffd38e';
-        $clientScret = 'idcscs-dc8c4eef-d7aa-4870-96cc-c1d31cbfe748';
-        $scope = 'https://adva-test-ohi.oracleindustry.com/test/urn::ohi-components-apis';
+    // // }
+    // public function testOraclePharmaAct(): void
+    // {
+    //     $providerId = '45C2ADA676EE3698E0639F18000A69B5';
+    //     $clientId = '00258a15399a4936a5743bfdeaffd38e';
+    //     $clientScret = 'idcscs-dc8c4eef-d7aa-4870-96cc-c1d31cbfe748';
+    //     // $scope = 'https://adva-test-ohi.oracleindustry.com/test/urn::ohi-components-apis';
 
-        try {
-            $payload = [
-                "auth" =>
-                [
-                    "clientId" => $clientId,
-                    "clientSecret" => $clientScret,
-                    "providerId" => $providerId,
-                    "scope" => $scope
-                ],
-                "requestData" =>
-                [
-                    "payerCode" => "VIV",
-                    "insuranceType" => "S",
-                    "userName" => "Provideruserone",
-                    "memberCode" => "99999993000202",
-                    "localCode" => "AO5000078271-2",
-                    // "providerReference" => "",
-                    "locationType" => "FARMA",
-                    // "invoiceDate" => "2026-02-01",
-                       "memberPhoneNo"=> "925334548",
-                    "emergency" => "false",
-                    // "invoiceAmount" => ["value" => "25000", "currency" => "AOA"],
-                    "claimDiagnosisList" => [
-                        [
-                            "sequence" => 1,
-                            "diagnosisType" => "P",
-                            "diagnosisDate" => "2026-02-13",
-                            "symptomsDate" => "2026-02-13",
-                            "diagnosisCode" => "B50",
-                            "classification" => "CID10"
-                        ],
-                        // [
-                        //     "sequence" => 2,
-                        //     "diagnosisType" => "A",
-                        //     "diagnosisDate" => "2026-02-01",
-                        //     "symptomsDate" => "2026-02-01",
-                        //     "diagnosisCode" => "B000",
-                        //     "classification" => "CID10"
-                        // ]
-                    ],
-                    "claimLineList" => [
-                        [
-                            "sequence" => "1",
-                            "medicalActCode" => "P-0010325",
-                            "startDate" => "2026-02-13",
-                            "endDate" => "2026-02-13",
-                            "requestedUnits" => 1,
-                            "requestedAmount" => ["value" => "5325", "currency" => "AOA"],
-                            // "ivaPercentage" => 14,
-                            // "toothNumber" => "11",
-                            // "dioptersRightEye" => "+1.25",
-                            // "dioptersLeftEye" => "-1.75",
-                            // "lineNotes" => ["noteText" => "test note", "noteDate" => "2026-01-11", "noteType" => "PROVIDER"]
-                        ],
-                        [
-                            "sequence" => "2",
-                            "medicalActCode" => "P-0046625",
-                            "startDate" => "2026-02-13",
-                            "endDate" => "2026-02-13",
-                            "requestedUnits" => 1,
-                            "requestedAmount" => 
-                            ["value" => "5325",
-                             "currency" => "AOA"
+    //     try {
+    //         $payload = [
+    //             "auth" =>
+    //             [
+    //                 "clientId" => $clientId,
+    //                 "clientSecret" => $clientScret,
+    //                 "providerId" => $providerId,
+    //                 // "scope" => $scope
+    //             ],
+    //             "requestData" =>
+    //             [
+    //                 "payerCode" => "VIV",
+    //                 "insuranceType" => "S",
+    //                 "userName" => "Provideruserone",
+    //                 "memberCode" => "99999993000202",
+    //                 "localCode" => "AO5000078271-2",
+    //                 // "providerReference" => "",
+    //                 "locationType" => "FARMA",
+    //                 // "invoiceDate" => "2026-02-01",
+    //                    "memberPhoneNo"=> "925334548",
+    //                 "emergency" => "false",
+    //                 // "invoiceAmount" => ["value" => "25000", "currency" => "AOA"],
+    //                 "claimDiagnosisList" => [
+    //                     [
+    //                         "sequence" => 1,
+    //                         "diagnosisType" => "P",
+    //                         "diagnosisDate" => "2026-02-13",
+    //                         "symptomsDate" => "2026-02-13",
+    //                         "diagnosisCode" => "B50",
+    //                         "classification" => "CID10"
+    //                     ],
+    //                     // [
+    //                     //     "sequence" => 2,
+    //                     //     "diagnosisType" => "A",
+    //                     //     "diagnosisDate" => "2026-02-01",
+    //                     //     "symptomsDate" => "2026-02-01",
+    //                     //     "diagnosisCode" => "B000",
+    //                     //     "classification" => "CID10"
+    //                     // ]
+    //                 ],
+    //                 "claimLineList" => [
+    //                     [
+    //                         "sequence" => "1",
+    //                         "medicalActCode" => "P-0010325",
+    //                         "startDate" => "2026-02-13",
+    //                         "endDate" => "2026-02-13",
+    //                         "requestedUnits" => 1,
+    //                         "requestedAmount" => ["value" => "5325", "currency" => "AOA"],
+    //                         // "ivaPercentage" => 14,
+    //                         // "toothNumber" => "11",
+    //                         // "dioptersRightEye" => "+1.25",
+    //                         // "dioptersLeftEye" => "-1.75",
+    //                         // "lineNotes" => ["noteText" => "test note", "noteDate" => "2026-01-11", "noteType" => "PROVIDER"]
+    //                     ],
+    //                     [
+    //                         "sequence" => "2",
+    //                         "medicalActCode" => "P-0046625",
+    //                         "startDate" => "2026-02-13",
+    //                         "endDate" => "2026-02-13",
+    //                         "requestedUnits" => 1,
+    //                         "requestedAmount" => 
+    //                         ["value" => "5325",
+    //                          "currency" => "AOA"
                              
-                             ]
-                        ]
-                    ]
-                ]
-            ];
+    //                          ]
+    //                     ]
+    //                 ]
+    //             ]
+    //         ];
 
-            $client = AdvClient::testInstance();
+    //         $client = AdvClient::testInstance();
 
-            $response = $client->oraclePerformPharmaAct($payload);
-            print('Getting the results....');
-            var_dump($response);
-        } catch (OracleException $ex) {
-            // print('Oracle Exception in the Test: ');
-            print($ex->getMessage());
-        }
-    }
+    //         $response = $client->oraclePerformPharmaAct($payload);
+         
+    //         var_dump($response);
+    //     } catch (OracleException $ex) {
+    //         // print('Oracle Exception in the Test: ');
+    //         print($ex->getMessage());
+    //     }
+    // }
 
-function testPharmaActCancellation():void{
+public function testPharmaActCancellation():void{
+    try{
       $providerId = '45C2ADA676EE3698E0639F18000A69B5';
         $clientId = '00258a15399a4936a5743bfdeaffd38e';
         $clientScret = 'idcscs-dc8c4eef-d7aa-4870-96cc-c1d31cbfe748';
-        $scope = 'https://adva-test-ohi.oracleindustry.com/test/urn::ohi-components-apis';
+        // $scope = 'https://adva-test-ohi.oracleindustry.com/test/urn::ohi-components-apis';
 
     $client = AdvClient::testInstance();
     //   "requestData":{ "payerCode": "VIV",
@@ -222,19 +224,26 @@ function testPharmaActCancellation():void{
                     "clientId" => $clientId,
                     "clientSecret" => $clientScret,
                     "providerId" => $providerId,
-                    "scope" => $scope
+                    // "scope" => $scope
                 ],
                 "requestData" =>[
                     "payerCode" => "VIV",
                 "localCode" => "AO5000078271-2",
+                 "memberCode"=> "99999993000202",
                 "providerReference" => "",
-                "claimCode" => "49334494912",
+                "claimCode" => "49324670577",
                 "cancellationReasonCode" => "CAN_DUP",
                 "userName" => "Provideruserone"
                 ]
                 
     ];
-    $client->oracleCreateEligibility($payload);
+    $result = $client->oracleCancelEligibility($payload);
+    var_dump($result);
+
+    
+    }catch(Exception $e){
+        print($e->getMessage());
+    }
 
 }
 }

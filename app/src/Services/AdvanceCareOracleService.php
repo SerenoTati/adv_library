@@ -10,7 +10,7 @@ use AdvClientAPI\Core\Config;
 use AdvClientAPI\Auth\TokenManager;
 use AdvClientAPI\Exceptions\OracleException;
 use AdvClientAPI\Mappers\OracleResponseMapper;
-use GuzzleHttp\Client;
+
 
 /**
  * Oracle REST API service implementation
@@ -123,79 +123,77 @@ class AdvanceCareOracleService extends BaseService
 
         $endpoint = $this->config->getOracleBaseUrl() . $providerId . '/' . $operation;
 
-        // Prepare request - add Bearer prefix like Python script does
+        // Prepare request - add Bearer prefix 
         $headers = [
-            'Authorization' => 'Bearer ' . $token,  // Add "Bearer " prefix (like Python)
+            'Authorization' => 'Bearer ' . $token,  // Add "Bearer " prefix
             'Content-Type' => 'application/json',
             'Accept' => 'application/json',
             'Provider' => $providerId,
             "ohi-exchange-allowed-time-ms" => "60000"
         ];
-         
+
 
         $body = json_encode($requestData);
 
 
         try {
+
+            $response = $this->makeRequest("POST", $endpoint, $headers, $body);
          
-            // Enable cookie jar for handling authentication
-            $cookieJar = new \GuzzleHttp\Cookie\CookieJar();
-            
-            // Disable automatic redirects - we'll handle them manually like the Python script
-            $client = new Client([
-                'timeout' => $this->config->getRequestTimeoutSec(),
-                'allow_redirects' => false,
-                'cookies' => $cookieJar
-            ]);
-            $response = $client->request('POST', $endpoint, ['headers' => $headers, 'body' => $body]);
-            
-            // Handle 302/303 redirects - follow with GET and keep Authorization header
-            if ($response->getStatusCode() === 302 || $response->getStatusCode() === 303) {
-                $responseHeaders = $response->getHeaders();
-                
-                if (!isset($responseHeaders['Location'])) {
+          if ($response['status_code'] === 302 || $response['status_code'] === 303) {
+                $responseHeaders = $response['headers'];
+                $redirectUrl =null;
+                // Check for Location header
+                foreach ($responseHeaders as $value){
+                    if (stripos($value, 'location:') ===0) {
+                        $redirectUrl = trim(substr($value, 9));
+                        break;
+                    }
+
+                }
+                // checking for redirect Url
+                if ($redirectUrl === null || empty($redirectUrl)) {
                     throw new OracleException(
                         'Redirect received but no Location header found',
-                        $response->getStatusCode(),
+                        $response['status_code'],
                         $endpoint,
                         ''
                     );
                 }
-                
-                $redirectUrl = $responseHeaders['Location'][0];
-                
                 // Follow redirect with GET and KEEP the Authorization header 
-                $redirectResponse = $client->request('GET', $redirectUrl, ['headers' => $headers]);
-               
-                if ($redirectResponse->getStatusCode() !== 200) {
+                $redirectResponse = $this->makeRequest("GET", $redirectUrl, $headers);
+         
+
+                if ($redirectResponse['status_code'] !== 200) {
                     throw new OracleException(
-                        'Redirect request failed with status code ' . $redirectResponse->getStatusCode(),
-                        $redirectResponse->getStatusCode(),
+                        'Redirect request failed with status code ' . $redirectResponse['status_code'],
+                        $redirectResponse['status_code'],
                         $redirectUrl,
-                        (string)$redirectResponse->getBody()
+                        (string)$redirectResponse['status_code']
                     );
                 }
 
-                $responseBody = (string)$redirectResponse->getBody();
-                $mapper = new OracleResponseMapper($responseBody);
+                $responseBody = $redirectResponse['body'];
+                $mapper = new OracleResponseMapper(
+                    $responseBody
+                );
                 return $mapper->map();
             }
 
             // Handle non-redirect responses
-            if ($response->getStatusCode() !== 200) {
+            if ($response['status_code'] !== 200) {
                 throw new OracleException(
-                    "Oracle API request failed with status code: " . $response->getStatusCode(),
-                    $response->getStatusCode(),
+                    "Oracle API request failed with status code: " . $response['status_code'],
+                    $response['status_code'],
                     $endpoint,
-                    (string)$response->getBody()
+                    $response['body']
                 );
             }
 
             // Parse successful response
-            $responseBody = (string)$response->getBody();
+            $responseBody = (string)$response['body'];
             $mapper = new OracleResponseMapper($responseBody);
             return $mapper->map();
-            
         } catch (OracleException $e) {
             $this->logger->error('Oracle REST request failed ' . $e->getMessage(), [
                 'operation' => $operation,
@@ -203,7 +201,7 @@ class AdvanceCareOracleService extends BaseService
             ]);
             throw $e;
         } catch (Exception $e) {
-         
+
             throw new OracleException(
                 "Oracle REST request error: " . $e->getMessage(),
                 0,

@@ -64,16 +64,7 @@ insurance-api-php-library/
 └── composer.json                # PHP dependencies
 ```
 
-## Configuration
 
-Environment variables are set in `docker-compose.yml`:
-
-- `ADVANCECARE_ENV`: Environment (QUAL or PROD)
-- `HTTP_MAX_RETRIES`: Maximum retry attempts
-- `HTTP_BACKOFF_FACTOR`: Exponential backoff multiplier
-- `HTTP_REQUEST_TIMEOUT_SEC`: Request timeout in seconds
-- `TOKEN_CACHE_TTL_SEC`: Token cache TTL in seconds
-- `LOG_LEVEL`: Logging level
 
 ## Development
 
@@ -110,6 +101,3 @@ echo $result['success'] ? 'Success!' : 'Error: ' . $result['error'];
 docker-compose down
 ```
 
-## More Information
-
-See [PHP_LIBRARY_PLAN.md](PHP_LIBRARY_PLAN.md) for the complete design and implementation plan.

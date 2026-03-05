@@ -25,10 +25,5 @@
     <php>
         <ini name="display_errors" value="On"/>
         <ini name="error_reporting" value="-1"/>
-        <env name="ADVANCECARE_ENV" value="QUAL"/>
-        <env name="HTTP_MAX_RETRIES" value="3"/>
-        <env name="HTTP_BACKOFF_FACTOR" value="2.0"/>
-        <env name="HTTP_REQUEST_TIMEOUT_SEC" value="30"/>
-        <env name="TOKEN_CACHE_TTL_SEC" value="3600"/>
     </php>
 </phpunit>

@@ -15,26 +15,27 @@ class NoopLogger implements LoggerInterface
     {
         // Silent
         print("DebugLog: $message");
-        // var_dump($context);  
+        var_dump($context);  
     }
 
     public function info(string $message, array $context = []): void
     {
         
            print('InfoLog: '. $message);
-        // var_dump($context);
+           var_dump($context);
+      
     }
 
     public function warning(string $message, array $context = []): void
     {
-        // print('WaringnLog: '. $message);
-        // var_dump($context);
+        print('WaringnLog: '. $message);
+        var_dump($context);
     }
 
     public function error(string $message, array $context = []): void
     {
        
         print('ErrorLog: '. $message);
-        // var_dump($context);
+        var_dump($context);
     }
 }

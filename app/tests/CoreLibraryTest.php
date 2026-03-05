@@ -375,36 +375,6 @@ XML;
         $this->assertEquals('P-0025825', $claim['lineItems'][0]['medicalActCode']);
     }
 
-    // /**
-    //  * Test configuration from environment variables
-    //  */
-    // // public function testEnvironmentVariableConfiguration(): void
-    // {
-    //     // Save old values
-    //     $oldEnv = getenv('ADVANCECARE_ENV');
-    //     $oldRetries = getenv('HTTP_MAX_RETRIES');
-
-    //     try {
-    //         // Set environment variables
-    //         putenv('ADVANCECARE_ENV=QUAL');
-    //         putenv('HTTP_MAX_RETRIES=5');
-
-    //         $config = New Config();
-    //         $client = new InsuranceApiClient($config);
-    //         $configArray = $client->getConfigArray();
-
-    //         $this->assertEquals('QUAL', $configArray['advancecare_env']);
-    //         $this->assertEquals(5, $configArray['http_max_retries']);
-    //     } finally {
-    //         // Restore environment
-    //         if ($oldEnv !== false) {
-    //             putenv("ADVANCECARE_ENV=$oldEnv");
-    //         }
-    //         if ($oldRetries !== false) {
-    //             putenv("HTTP_MAX_RETRIES=$oldRetries");
-    //         }
-    //     }
-    // }
 
     /**
      * Test response mapper error handling
@@ -432,14 +402,11 @@ XML;
 
         $mapper = new PharmaActResponseMapper($errorXml);
     
-      $result =           $mapper->map();
+      $result =   $mapper->map();
     
       $this->assertFalse($result['success']);
               assertEquals(1, $result['returnCode']);
               assertEquals(0, $result['totalResults']);
               
-      
-        
-        // $mapper->map();
     }
 }
