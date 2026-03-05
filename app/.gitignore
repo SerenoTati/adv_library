@@ -20,6 +20,9 @@ logs/
 # Tests
 .phpunit.result.cache
 coverage/
+tests/AdvClientTest.php
+
+
 
 # Environment
 .env
