@@ -1,7 +1,7 @@
 services:
 
   php:
-   
+    # image: adv-library-php   # use the prebuilt image
     build: 
       context: .
       dockerfile: Dockerfile
@@ -13,4 +13,4 @@ services:
  
     ports:
       - "9000:9000"
-   
+  

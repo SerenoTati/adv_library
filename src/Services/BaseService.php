@@ -9,6 +9,8 @@ use AdvClientAPI\Contracts\LoggerInterface;
 use AdvClientAPI\Contracts\InsuranceServiceInterface;
 use AdvClientAPI\Utilities\RetryPolicy;
 use AdvClientAPI\Exceptions\InsuranceApiException;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Abstract base service with common functionality
@@ -64,69 +66,95 @@ protected function makeRequest(
      * @param string|null $body
      * @return array{status_code: int, headers: array, body: string}
      */
-    protected function executeRequest(
+     protected function executeRequest(
         string $method,
         string $url,
         array $headers = [],
         ?string $body = null
     ): array {
-        $ch = curl_init();
-
         try {
-            $curlOptions = [
-                CURLOPT_URL => $url,
-                CURLOPT_CUSTOMREQUEST => $method,
-                CURLOPT_RETURNTRANSFER => true,
-                CURLOPT_TIMEOUT => $this->config->getRequestTimeoutSec(),
-                CURLOPT_HEADER => true,
-                // CURLOPT_FOLLOWLOCATION => true,
-            
-                // CURLOPT_MAXREDIRS => 5,
-                // This bitmask tells cURL to resend POST data on 301, 302, and 303 redirects
-                // CURLOPT_POSTREDIR => 1 | 2 | 4,
-              
-            ];
+            $response = Http::withHeaders($headers)
+            ->withOptions([
+                'allow_redirects' => false, // IMPORTANTE: Nós vamos controlar o redirect
+                'verify' => false,
+            ])
+            ->timeout(60)
+            ->send($method, $url, ['body' => $body]);
 
-            if (!empty($headers)) {
-                $curlOptions[CURLOPT_HTTPHEADER] = array_map(
-                    fn($k, $v) => "{$k}: {$v}",
-                    array_keys($headers),
-                    array_values($headers)
-                );
-            }
-
-            if ($body !== null && $method !== 'GET') {
-                $curlOptions[CURLOPT_POSTFIELDS] = $body;
-            }
-
-            curl_setopt_array($ch, $curlOptions);
-            
-            $raw_response = curl_exec($ch);
-            $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            $curlError = curl_error($ch);
-           
-            if ($raw_response === false) {
-                throw new InsuranceApiException(
-                    "CURL error: {$curlError}"
-                );
-            }
-            $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-            $responseHeader = substr($raw_response, 0, $headerSize);
-            $headerLines = array_map('trim', explode("\r\n", $responseHeader));
-            $responseBody = substr($raw_response, $headerSize );
-            // var_dump($responseHeader);
-            // var_dump($headerLines);
-
-
-            return [ 
-            'status_code' => (int)$statusCode,
-            'headers' => $headerLines,
-            'body' => (string)$responseBody,
+        return [
+            'status_code' => $response->status(),
+            'body'        => $response->body(),
+            'headers'     => $response->headers(),
         ];
-        } finally {
-          unset($ch);
+
+        } catch (\Exception $e) {
+            Log::error("Erro inesperado no executeRequest: " . $e->getMessage());
+            throw new InsuranceApiException("Erro interno ao processar pedido à seguradora.");
         }
-        
-        
     }
+    // protected function executeRequest(
+    //     string $method,
+    //     string $url,
+    //     array $headers = [],
+    //     ?string $body = null
+    // ): array {
+    //     $ch = curl_init();
+
+    //     try {
+    //         $curlOptions = [
+    //             CURLOPT_URL => $url,
+    //             CURLOPT_CUSTOMREQUEST => $method,
+    //             CURLOPT_RETURNTRANSFER => true,
+    //             CURLOPT_TIMEOUT => $this->config->getRequestTimeoutSec(),
+    //             CURLOPT_HEADER => true,
+    //             // CURLOPT_FOLLOWLOCATION => true,
+            
+    //             // CURLOPT_MAXREDIRS => 5,
+    //             // This bitmask tells cURL to resend POST data on 301, 302, and 303 redirects
+    //             // CURLOPT_POSTREDIR => 1 | 2 | 4,
+              
+    //         ];
+
+    //         if (!empty($headers)) {
+    //             $curlOptions[CURLOPT_HTTPHEADER] = array_map(
+    //                 fn($k, $v) => "{$k}: {$v}",
+    //                 array_keys($headers),
+    //                 array_values($headers)
+    //             );
+    //         }
+
+    //         if ($body !== null && $method !== 'GET') {
+    //             $curlOptions[CURLOPT_POSTFIELDS] = $body;
+    //         }
+
+    //         curl_setopt_array($ch, $curlOptions);
+            
+    //         $raw_response = curl_exec($ch);
+    //         $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    //         $curlError = curl_error($ch);
+           
+    //         if ($raw_response === false) {
+    //             throw new InsuranceApiException(
+    //                 "CURL error: {$curlError}"
+    //             );
+    //         }
+    //         $headerSize = curl_getinfo($ch, CURLINFO_HEADER_SIZE);
+    //         $responseHeader = substr($raw_response, 0, $headerSize);
+    //         $headerLines = array_map('trim', explode("\r\n", $responseHeader));
+    //         $responseBody = substr($raw_response, $headerSize );
+    //         // var_dump($responseHeader);
+    //         // var_dump($headerLines);
+
+
+    //         return [ 
+    //         'status_code' => (int)$statusCode,
+    //         'headers' => $headerLines,
+    //         'body' => (string)$responseBody,
+    //     ];
+    //     } finally {
+    //       unset($ch);
+    //     }
+        
+        
+    // }
 }

@@ -52,11 +52,11 @@ use AdvClientAPI\Utilities\NoopLogger;
         $this->advanceCareQualUrl = 'https://wsdev.advancecare.com/zonaReservadaWSAO/EligibilityWSAO/wsdl/EligibilityWSAO.wsdl';
         $this->advanceCareProdUrl = 'https://profissional.adv-angola.com/zonaReservadaWSAO/EligibilityWSAO/wsdl/EligibilityWSAO.wsdl';
         $this->advanceCareEnv = 'PROD';
+//https://hy3hzre5lodxs73ehrin6zxkby.apigateway.eu-frankfurt-1.oci.customer-oci.com/oig-prod/exchanges/integration/
 
-
-        // ORACLE REST defaults
+     // ORACLE REST defaults
         $this->oracleTestUrl = 'https://fmxovjwlbbhe4wdambldgmyxju.apigateway.eu-frankfurt-1.oci.customer-oci.com/oig-test/exchanges/integration/';
-        $this->oracleProdUrl = 'https://fmxovjwlbbhe4wdambldgmyxju.apigateway.eu-frankfurt-1.oci.customer-oci.com/oig-prod/exchanges/integration/';
+        $this->oracleProdUrl = 'https://hy3hzre5lodxs73ehrin6zxkby.apigateway.eu-frankfurt-1.oci.customer-oci.com/oig-prod/exchanges/integration/';
         $this->oracleBaseUrl = $this->oracleProdUrl;
         $this->testScope ='https://adva-test-ohi.oracleindustry.com/test/urn::ohi-components-apis';
         $this->prodScope = 'https://adva-prod-ohi.oracleindustry.com/prod/urn::ohi-components-apis';
@@ -295,6 +295,7 @@ use AdvClientAPI\Utilities\NoopLogger;
      */
     public function getOracleBaseUrl(): string
     {
+
         return $this->oracleBaseUrl;
     }
     public function getOracleScope(): string

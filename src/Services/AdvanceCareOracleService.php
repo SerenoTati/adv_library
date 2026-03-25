@@ -122,7 +122,7 @@ class AdvanceCareOracleService extends BaseService
         $providerId = $auth['providerId'];
 
         $endpoint = $this->config->getOracleBaseUrl() . $providerId . '/' . $operation;
-
+       
         // Prepare request - add Bearer prefix 
         $headers = [
             'Authorization' => 'Bearer ' . $token,  // Add "Bearer " prefix
@@ -137,8 +137,10 @@ class AdvanceCareOracleService extends BaseService
 
 
         try {
+            // print($endpoint);
 
             $response = $this->makeRequest("POST", $endpoint, $headers, $body);
+  
          
           if ($response['status_code'] === 302 || $response['status_code'] === 303) {
                 $responseHeaders = $response['headers'];
@@ -157,14 +159,15 @@ class AdvanceCareOracleService extends BaseService
                         'Redirect received but no Location header found',
                         $response['status_code'],
                         $endpoint,
-                        ''
+                        
                     );
                 }
                 // Follow redirect with GET and KEEP the Authorization header 
                 $redirectResponse = $this->makeRequest("GET", $redirectUrl, $headers);
          
-
+                // var_dump($redirectResponse);
                 if ($redirectResponse['status_code'] !== 200) {
+                    // print('Redirected Request failed...');
                     throw new OracleException(
                         'Redirect request failed with status code ' . $redirectResponse['status_code'],
                         $redirectResponse['status_code'],
@@ -177,7 +180,9 @@ class AdvanceCareOracleService extends BaseService
                 $mapper = new OracleResponseMapper(
                     $responseBody
                 );
-                return $mapper->map();
+                $parsedData = $mapper->map();
+            //    var_dump($parsedData);
+                return $parsedData;
             }
 
             // Handle non-redirect responses

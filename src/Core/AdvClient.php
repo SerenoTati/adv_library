@@ -35,9 +35,9 @@ class AdvClient
      */
     public function __construct()
     {
-        // $this->config = new Config();
-        $this->advanceCareService = new AdvanceCareService(new Config());
-        $this->oracleService = new AdvanceCareOracleService(new Config());
+        $config = new Config();
+        $this->advanceCareService = new AdvanceCareService($config);
+        $this->oracleService = new AdvanceCareOracleService($config);
     }
     public static function testInstance(): self
     {
