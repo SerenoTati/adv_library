@@ -47,9 +47,9 @@ $payload = [
                 "dos" => date('c'), // Generates ISO 8601 format
                 "memID" => "900",
                 "practiceSeq" => 1,
-                "providerID" => "5000078271",
-                "username" =>   "AVA0265",
-                "password" => "sdas21ad",
+                "providerID" => "5999999999",
+                "username" =>   "PPP1234",
+                "password" => "sssssss",
                 "pharmaServiceValuesList" => [
                     [
                         "amtClaimed" => "263.16",
@@ -110,12 +110,12 @@ $payload =[
                     "payerCode" => "VIV",
                     "insuranceType" => "S",
                     "userName" => "Provideruserone",
-                    "memberCode" => "99999993000202",
-                    "localCode" => "AO5000078271-2",
+                    "memberCode" => "11111111111111",
+                    "localCode" => "AO5999999999-1",
 
                     "locationType" => "FARMA",
 
-                    "memberPhoneNo" => "925334548",
+                    "memberPhoneNo" => "921000000",
                     "emergency" => "false",
 
                     "claimDiagnosisList" => [
@@ -203,8 +203,8 @@ use AdvClientAPI\Core\AdvClient;
                 ],
                 "requestData" => [
                     "payerCode" => "VIV",
-                    "localCode" => "AO5000078271-2",
-                    "memberCode" => "99999993000202",
+                    "localCode" => "AO5999999999-2",
+                    "memberCode" => "11111111111111",
                     "providerReference" => "",
                     "claimCode" => "49324670577",
                     "cancellationReasonCode" => "CAN_DUP",
